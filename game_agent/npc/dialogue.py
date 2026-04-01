@@ -15,11 +15,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-try:
-    import openai
-    HAS_OPENAI = True
-except ImportError:
-    HAS_OPENAI = False
+from game_agent.utils.llm_client import LLMClient, LLMConfig
 
 
 @dataclass
@@ -55,6 +51,7 @@ class NPCDialogueSystem:
         self,
         npc_profile: NPCProfile,
         llm_config: dict[str, Any] | None = None,
+        llm_client: LLMClient | None = None,
         max_history: int = 10,
     ):
         self.profile = npc_profile
@@ -62,13 +59,13 @@ class NPCDialogueSystem:
         self._history: list[DialogueTurn] = []
         self._llm_config = llm_config or {}
 
-        # LLM 客户端
-        self._client = None
-        if HAS_OPENAI and self._llm_config.get("api_key"):
-            self._client = openai.OpenAI(
-                api_key=self._llm_config["api_key"],
-                base_url=self._llm_config.get("base_url"),
-            )
+        # LLM 客户端: 优先使用外部传入的client, 否则根据配置创建
+        if llm_client is not None:
+            self._client = llm_client
+        elif self._llm_config.get("api_key") or self._llm_config.get("base_url"):
+            self._client = LLMClient(self._llm_config)
+        else:
+            self._client = None
 
         # 预设回应(降级用)
         self._fallback_responses = {
@@ -170,17 +167,7 @@ class NPCDialogueSystem:
                 role = "user" if turn.role == "player" else "assistant"
                 messages.append({"role": role, "content": turn.content})
 
-            model = self._llm_config.get("model", "gpt-3.5-turbo")
-            max_tokens = self._llm_config.get("max_tokens", 256)
-            temperature = self._llm_config.get("temperature", 0.7)
-
-            response = self._client.chat.completions.create(
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-            )
-            return response.choices[0].message.content.strip()
+            return self._client.chat_completions(messages)
 
         except Exception:
             return None

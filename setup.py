@@ -8,7 +8,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.9",
     install_requires=[
-        "openai>=1.0.0",
+        "requests>=2.28.0",
         "pyyaml>=6.0",
         "numpy>=1.24.0",
         "pydantic>=2.0.0",

@@ -1,8 +1,13 @@
 """
 NPC对话示例 - 演示智能对话系统
+
+支持两种模式:
+1. 使用私有部署LLM服务 (传入llm_config或LLMClient)
+2. 降级模式 (不配置LLM, 使用预设回应)
 """
 
 from game_agent.npc.dialogue import NPCDialogueSystem, NPCProfile
+from game_agent.utils.llm_client import LLMClient, LLMConfig
 
 
 def main():
@@ -16,8 +21,30 @@ def main():
         knowledge=["武器锻造", "盔甲修理", "矿石种类", "镇上的历史", "骑士团往事"],
     )
 
-    # 创建对话系统(不配置API则使用降级模式)
-    dialogue = NPCDialogueSystem(npc_profile=profile, max_history=10)
+    # ---- 方式1: 使用私有部署LLM服务 ----
+    # 请根据实际环境填写, 或创建 configs/local.yaml 覆盖
+    llm_config = {
+        "provider": "private",
+        "model": "your-model-name",                    # 替换为你的模型名
+        "base_url": "http://your-llm-server/v1",       # 替换为你的API地址
+        "api_key": "your-api-key",                     # 替换为你的API密钥
+        "max_tokens": 1024,
+        "temperature": 0.7,
+        "timeout": 30,
+    }
+
+    # 也可以直接传入LLMClient实例:
+    # client = LLMClient(llm_config)
+    # dialogue = NPCDialogueSystem(npc_profile=profile, llm_client=client)
+
+    dialogue = NPCDialogueSystem(
+        npc_profile=profile,
+        llm_config=llm_config,
+        max_history=10,
+    )
+
+    # ---- 方式2: 降级模式(不配置LLM) ----
+    # dialogue = NPCDialogueSystem(npc_profile=profile, max_history=10)
 
     # 游戏上下文
     game_context = {
