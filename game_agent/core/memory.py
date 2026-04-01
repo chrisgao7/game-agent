@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 记忆模块 - 管理Agent的短期记忆、长期记忆和情景记忆
 
@@ -8,34 +9,35 @@
 
 from __future__ import annotations
 
-import time
 import hashlib
+import time
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 
 class MemoryType(str, Enum):
-    SHORT_TERM = "short_term"
-    LONG_TERM = "long_term"
-    EPISODIC = "episodic"
+    SHORT_TERM = 'short_term'
+    LONG_TERM = 'long_term'
+    EPISODIC = 'episodic'
 
 
 @dataclass
 class MemoryEntry:
     """单条记忆"""
+
     content: dict[str, Any]
     memory_type: MemoryType
     timestamp: float = field(default_factory=time.time)
-    importance: float = 0.5          # 重要性 [0, 1]
-    access_count: int = 0            # 访问次数
+    importance: float = 0.5  # 重要性 [0, 1]
+    access_count: int = 0  # 访问次数
     tags: list[str] = field(default_factory=list)
-    memory_id: str = ""
+    memory_id: str = ''
 
     def __post_init__(self):
         if not self.memory_id:
-            raw = f"{self.content}{self.timestamp}"
+            raw = f'{self.content}{self.timestamp}'
             self.memory_id = hashlib.md5(raw.encode()).hexdigest()[:12]
 
 
@@ -60,7 +62,8 @@ class AgentMemory:
         self.episodic_capacity = episodic_capacity
         self.relevance_threshold = relevance_threshold
 
-        self._short_term: deque[MemoryEntry] = deque(maxlen=short_term_capacity)
+        self._short_term: deque[MemoryEntry] = deque(
+            maxlen=short_term_capacity)
         self._long_term: list[MemoryEntry] = []
         self._episodic: list[MemoryEntry] = []
 
@@ -102,11 +105,11 @@ class AgentMemory:
     ) -> MemoryEntry:
         """存储一次完整的交互记录(感知→决策→执行)"""
         content = {
-            "action": action,
-            "context": context,
-            "result": result,
+            'action': action,
+            'context': context,
+            'result': result,
         }
-        return self.store(content, MemoryType.EPISODIC, importance, tags=["interaction"])
+        return self.store(content, MemoryType.EPISODIC, importance, tags=['interaction'])
 
     # ---- 检索接口 ----
 
@@ -183,9 +186,9 @@ class AgentMemory:
     @property
     def stats(self) -> dict[str, int]:
         return {
-            "short_term": len(self._short_term),
-            "long_term": len(self._long_term),
-            "episodic": len(self._episodic),
+            'short_term': len(self._short_term),
+            'long_term': len(self._long_term),
+            'episodic': len(self._episodic),
         }
 
     # ---- 内部方法 ----
@@ -228,7 +231,8 @@ class AgentMemory:
         query_keys = set(str(v).lower() for v in query.values() if v)
         entry_keys = set(str(v).lower() for v in entry.content.values() if v)
         if query_keys and entry_keys:
-            overlap = len(query_keys & entry_keys) / max(len(query_keys | entry_keys), 1)
+            overlap = len(query_keys & entry_keys) / \
+                max(len(query_keys | entry_keys), 1)
         else:
             overlap = 0.0
 
@@ -242,5 +246,6 @@ class AgentMemory:
         # 访问频率归一化
         freq_score = min(entry.access_count / 10.0, 1.0)
 
-        score = 0.4 * overlap + 0.3 * time_score + 0.2 * importance_score + 0.1 * freq_score
+        score = 0.4 * overlap + 0.3 * time_score + \
+            0.2 * importance_score + 0.1 * freq_score
         return score

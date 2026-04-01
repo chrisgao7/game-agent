@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 行动执行器 - 执行决策模块产生的行动, 与游戏世界交互并返回结果
 """
@@ -6,7 +7,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from game_agent.core.decision import Action, ActionType
 
@@ -17,12 +18,13 @@ if TYPE_CHECKING:
 @dataclass
 class ActionResult:
     """行动执行结果"""
+
     action: Action
     success: bool
     outcome: dict[str, Any] = field(default_factory=dict)
-    message: str = ""
+    message: str = ''
     timestamp: float = field(default_factory=time.time)
-    duration: float = 0.0   # 执行耗时(秒)
+    duration: float = 0.0  # 执行耗时(秒)
 
 
 class ActionExecutor:
@@ -58,7 +60,7 @@ class ActionExecutor:
             result = ActionResult(
                 action=action,
                 success=False,
-                message=f"No handler for action type: {action.action_type}",
+                message=f'No handler for action type: {action.action_type}',
             )
         else:
             try:
@@ -67,13 +69,13 @@ class ActionExecutor:
                     action=action,
                     success=True,
                     outcome=outcome,
-                    message="ok",
+                    message='ok',
                 )
             except Exception as e:
                 result = ActionResult(
                     action=action,
                     success=False,
-                    message=f"Execution error: {e}",
+                    message=f'Execution error: {e}',
                 )
 
         result.duration = time.time() - start
@@ -109,62 +111,62 @@ class ActionExecutor:
         }
 
     def _handle_move(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        target_pos = action.parameters.get("position", (0, 0, 0))
+        target_pos = action.parameters.get('position', (0, 0, 0))
         world.move_entity(agent_id, target_pos)
-        return {"new_position": target_pos}
+        return {'new_position': target_pos}
 
     def _handle_attack(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        damage = action.parameters.get("damage", 10)
+        damage = action.parameters.get('damage', 10)
         result = world.apply_damage(agent_id, action.target, damage)
-        return {"target": action.target, "damage": damage, "result": result}
+        return {'target': action.target, 'damage': damage, 'result': result}
 
     def _handle_defend(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        world.set_entity_state(agent_id, "defending")
-        return {"state": "defending"}
+        world.set_entity_state(agent_id, 'defending')
+        return {'state': 'defending'}
 
     def _handle_patrol(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        waypoints = action.parameters.get("waypoints", [])
+        waypoints = action.parameters.get('waypoints', [])
         next_point = world.get_next_patrol_point(agent_id, waypoints)
         if next_point:
             world.move_entity(agent_id, next_point)
-        return {"moving_to": next_point}
+        return {'moving_to': next_point}
 
     def _handle_interact(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        interaction_type = action.parameters.get("interaction_type", "greet")
+        interaction_type = action.parameters.get('interaction_type', 'greet')
         result = world.interact(agent_id, action.target, interaction_type)
-        return {"interaction": interaction_type, "target": action.target, "result": result}
+        return {'interaction': interaction_type, 'target': action.target, 'result': result}
 
     def _handle_speak(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        message = action.parameters.get("message", "")
+        message = action.parameters.get('message', '')
         world.send_message(agent_id, action.target, message)
-        return {"message": message, "target": action.target}
+        return {'message': message, 'target': action.target}
 
     def _handle_flee(self, action: Action, agent_id: str, world: GameWorld) -> dict:
         safe_pos = world.find_safe_position(agent_id)
         world.move_entity(agent_id, safe_pos)
-        world.set_entity_state(agent_id, "fleeing")
-        return {"fleeing_to": safe_pos}
+        world.set_entity_state(agent_id, 'fleeing')
+        return {'fleeing_to': safe_pos}
 
     def _handle_idle(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        world.set_entity_state(agent_id, "idle")
-        return {"state": "idle"}
+        world.set_entity_state(agent_id, 'idle')
+        return {'state': 'idle'}
 
     def _handle_use_item(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        item_id = action.parameters.get("item_id", "")
+        item_id = action.parameters.get('item_id', '')
         result = world.use_item(agent_id, item_id)
-        return {"item": item_id, "result": result}
+        return {'item': item_id, 'result': result}
 
     def _handle_investigate(self, action: Action, agent_id: str, world: GameWorld) -> dict:
-        target_pos = action.parameters.get("position", (0, 0, 0))
+        target_pos = action.parameters.get('position', (0, 0, 0))
         world.move_entity(agent_id, target_pos)
-        world.set_entity_state(agent_id, "investigating")
-        return {"investigating": target_pos}
+        world.set_entity_state(agent_id, 'investigating')
+        return {'investigating': target_pos}
 
     def _handle_follow(self, action: Action, agent_id: str, world: GameWorld) -> dict:
         target_pos = world.get_entity_position(action.target)
         if target_pos:
             world.move_entity(agent_id, target_pos)
-        return {"following": action.target}
+        return {'following': action.target}
 
     def _record(self, result: ActionResult):
         self._execution_history.append(result)

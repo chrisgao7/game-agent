@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 决策模块 - 基于感知和记忆生成行动方案
 
@@ -13,48 +14,52 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
-from game_agent.core.memory import AgentMemory, MemoryType
-from game_agent.core.perception import PerceptionData
+if TYPE_CHECKING:
+    from game_agent.core.memory import AgentMemory
+    from game_agent.core.perception import PerceptionData
 
 
 class ActionType(str, Enum):
-    MOVE = "move"
-    ATTACK = "attack"
-    DEFEND = "defend"
-    PATROL = "patrol"
-    INTERACT = "interact"
-    SPEAK = "speak"
-    FLEE = "flee"
-    IDLE = "idle"
-    USE_ITEM = "use_item"
-    INVESTIGATE = "investigate"
-    FOLLOW = "follow"
-    CUSTOM = "custom"
+    MOVE = 'move'
+    ATTACK = 'attack'
+    DEFEND = 'defend'
+    PATROL = 'patrol'
+    INTERACT = 'interact'
+    SPEAK = 'speak'
+    FLEE = 'flee'
+    IDLE = 'idle'
+    USE_ITEM = 'use_item'
+    INVESTIGATE = 'investigate'
+    FOLLOW = 'follow'
+    CUSTOM = 'custom'
 
 
 class ActionPriority(int, Enum):
-    CRITICAL = 100     # 生死攸关
-    HIGH = 75          # 紧急任务
-    MEDIUM = 50        # 常规任务
-    LOW = 25           # 空闲行为
-    BACKGROUND = 0     # 背景动作
+    CRITICAL = 100  # 生死攸关
+    HIGH = 75  # 紧急任务
+    MEDIUM = 50  # 常规任务
+    LOW = 25  # 空闲行为
+    BACKGROUND = 0  # 背景动作
 
 
 @dataclass
 class Action:
     """行动方案"""
+
     action_type: ActionType
-    target: Optional[str] = None        # 目标ID
+    target: str | None = None  # 目标ID
     parameters: dict[str, Any] = field(default_factory=dict)
     priority: ActionPriority = ActionPriority.MEDIUM
-    confidence: float = 1.0             # 决策置信度 [0, 1]
-    source: str = "decision_module"     # 决策来源
+    confidence: float = 1.0  # 决策置信度 [0, 1]
+    source: str = 'decision_module'  # 决策来源
     timestamp: float = field(default_factory=time.time)
 
     def __repr__(self):
-        return f"Action({self.action_type.value}, target={self.target}, priority={self.priority.name})"
+        return (
+            f'Action({self.action_type.value}, target={self.target}, priority={self.priority.name})'
+        )
 
 
 class DecisionModule:
@@ -66,7 +71,7 @@ class DecisionModule:
 
     def __init__(
         self,
-        strategy: str = "hybrid",
+        strategy: str = 'hybrid',
         decision_interval: float = 0.5,
         max_actions_per_tick: int = 3,
     ):
@@ -81,7 +86,7 @@ class DecisionModule:
         self,
         perception: PerceptionData,
         memory: AgentMemory,
-        current_state: str = "idle",
+        current_state: str = 'idle',
         agent_properties: dict[str, Any] | None = None,
     ) -> list[Action]:
         """做出决策, 返回行动列表(按优先级排序)
@@ -99,14 +104,15 @@ class DecisionModule:
 
         # 检索相关记忆
         query = {
-            "has_threats": perception.has_threats,
-            "has_players": perception.has_players_nearby,
-            "state": current_state,
+            'has_threats': perception.has_threats,
+            'has_players': perception.has_players_nearby,
+            'state': current_state,
         }
         relevant_memories = memory.retrieve(query, top_k=5)
 
         # 生成候选行动
-        candidates = self._generate_candidates(perception, relevant_memories, current_state, props)
+        candidates = self._generate_candidates(
+            perception, relevant_memories, current_state, props)
 
         # 评估并排序
         evaluated = self._evaluate_candidates(candidates, perception, props)
@@ -143,7 +149,10 @@ class DecisionModule:
 
         # 如果没有匹配的规则, 生成默认idle行动
         if not candidates:
-            candidates.append(Action(action_type=ActionType.IDLE, priority=ActionPriority.BACKGROUND))
+            candidates.append(
+                Action(action_type=ActionType.IDLE,
+                       priority=ActionPriority.BACKGROUND)
+            )
 
         return candidates
 
@@ -154,6 +163,7 @@ class DecisionModule:
         properties: dict[str, Any],
     ) -> list[Action]:
         """评估候选行动, 按优先级和置信度综合排序"""
+
         def score(action: Action) -> float:
             return action.priority.value * action.confidence
 
@@ -163,66 +173,76 @@ class DecisionModule:
     def _setup_default_rules(self):
         """设置默认决策规则"""
         # 规则1: 生命危急 → 逃跑
-        self.add_rule(DecisionRule(
-            name="critical_health_flee",
-            priority=100,
-            condition=lambda ctx: ctx.properties.get("health", 1.0) < 0.2,
-            generate_action=lambda ctx: Action(
-                action_type=ActionType.FLEE,
-                priority=ActionPriority.CRITICAL,
-                confidence=0.9,
-                source="rule:critical_health",
-            ),
-        ))
+        self.add_rule(
+            DecisionRule(
+                name='critical_health_flee',
+                priority=100,
+                condition=lambda ctx: ctx.properties.get('health', 1.0) < 0.2,
+                generate_action=lambda ctx: Action(
+                    action_type=ActionType.FLEE,
+                    priority=ActionPriority.CRITICAL,
+                    confidence=0.9,
+                    source='rule:critical_health',
+                ),
+            )
+        )
 
         # 规则2: 发现威胁 → 攻击/防御
-        self.add_rule(DecisionRule(
-            name="threat_response",
-            priority=90,
-            condition=lambda ctx: ctx.perception.has_threats,
-            generate_action=lambda ctx: Action(
-                action_type=ActionType.ATTACK,
-                target=ctx.perception.threats[0].entity_id if ctx.perception.threats else None,
-                priority=ActionPriority.HIGH,
-                confidence=0.8,
-                source="rule:threat_response",
-            ),
-        ))
+        self.add_rule(
+            DecisionRule(
+                name='threat_response',
+                priority=90,
+                condition=lambda ctx: ctx.perception.has_threats,
+                generate_action=lambda ctx: Action(
+                    action_type=ActionType.ATTACK,
+                    target=ctx.perception.threats[0].entity_id if ctx.perception.threats else None,
+                    priority=ActionPriority.HIGH,
+                    confidence=0.8,
+                    source='rule:threat_response',
+                ),
+            )
+        )
 
         # 规则3: 附近有玩家 → 交互
-        self.add_rule(DecisionRule(
-            name="player_interaction",
-            priority=50,
-            condition=lambda ctx: (
-                ctx.perception.has_players_nearby
-                and not ctx.perception.has_threats
-            ),
-            generate_action=lambda ctx: Action(
-                action_type=ActionType.INTERACT,
-                target=ctx.perception.visible_players[0].entity_id if ctx.perception.visible_players else None,
-                priority=ActionPriority.MEDIUM,
-                confidence=0.7,
-                source="rule:player_interaction",
-            ),
-        ))
+        self.add_rule(
+            DecisionRule(
+                name='player_interaction',
+                priority=50,
+                condition=lambda ctx: (
+                    ctx.perception.has_players_nearby and not ctx.perception.has_threats
+                ),
+                generate_action=lambda ctx: Action(
+                    action_type=ActionType.INTERACT,
+                    target=ctx.perception.visible_players[0].entity_id
+                    if ctx.perception.visible_players
+                    else None,
+                    priority=ActionPriority.MEDIUM,
+                    confidence=0.7,
+                    source='rule:player_interaction',
+                ),
+            )
+        )
 
         # 规则4: 空闲 → 巡逻
-        self.add_rule(DecisionRule(
-            name="idle_patrol",
-            priority=10,
-            condition=lambda ctx: ctx.current_state == "idle",
-            generate_action=lambda ctx: Action(
-                action_type=ActionType.PATROL,
-                priority=ActionPriority.LOW,
-                confidence=0.6,
-                source="rule:idle_patrol",
-            ),
-        ))
+        self.add_rule(
+            DecisionRule(
+                name='idle_patrol',
+                priority=10,
+                condition=lambda ctx: ctx.current_state == 'idle',
+                generate_action=lambda ctx: Action(
+                    action_type=ActionType.PATROL,
+                    priority=ActionPriority.LOW,
+                    confidence=0.6,
+                    source='rule:idle_patrol',
+                ),
+            )
+        )
 
 
 @dataclass
 class DecisionContext:
     """决策上下文"""
+
     perception: PerceptionData
     memories: list
     current_state: str
@@ -232,7 +252,8 @@ class DecisionContext:
 @dataclass
 class DecisionRule:
     """决策规则"""
+
     name: str
     priority: int
-    condition: Any      # Callable[[DecisionContext], bool]
+    condition: Any  # Callable[[DecisionContext], bool]
     generate_action: Any  # Callable[[DecisionContext], Action | None]

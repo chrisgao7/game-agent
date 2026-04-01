@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 状态机(FSM) - NPC高层状态管理
 
@@ -9,15 +10,19 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
-from game_agent.npc.behavior_tree import BehaviorTree, BehaviorStatus
+from game_agent.npc.behavior_tree import BehaviorStatus, BehaviorTree
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @dataclass
 class Transition:
     """状态转移规则"""
+
     from_state: str
     to_state: str
     condition: Callable[[dict[str, Any]], bool]
@@ -26,9 +31,8 @@ class Transition:
     _last_trigger: float = 0.0
 
     def can_trigger(self, context: dict[str, Any]) -> bool:
-        if self.cooldown > 0:
-            if time.time() - self._last_trigger < self.cooldown:
-                return False
+        if self.cooldown > 0 and time.time() - self._last_trigger < self.cooldown:
+            return False
         try:
             return self.condition(context)
         except Exception:
@@ -96,11 +100,11 @@ class StateMachine:
     - 与行为树集成
     """
 
-    def __init__(self, name: str = "default_fsm"):
+    def __init__(self, name: str = 'default_fsm'):
         self.name = name
         self._states: dict[str, State] = {}
         self._transitions: list[Transition] = []
-        self._current_state: Optional[State] = None
+        self._current_state: State | None = None
         self._history: list[str] = []
         self._max_history = 50
 
@@ -183,9 +187,9 @@ class StateMachine:
     @property
     def stats(self) -> dict[str, Any]:
         return {
-            "name": self.name,
-            "current_state": self.current_state,
-            "states": list(self._states.keys()),
-            "transitions": len(self._transitions),
-            "history_length": len(self._history),
+            'name': self.name,
+            'current_state': self.current_state,
+            'states': list(self._states.keys()),
+            'transitions': len(self._transitions),
+            'history_length': len(self._history),
         }

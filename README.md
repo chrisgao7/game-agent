@@ -128,3 +128,19 @@ pip install -r requirements.txt
 ## 配置
 
 编辑 `configs/default.yaml` 配置LLM接口、性能参数等。
+
+## 代码风格一致性
+
+1. 安装pre-commit
+```bash
+pip install pre-commit
+```
+
+2. 安装pre-commit钩子
+```bash
+pre-commit install
+```
+
+3. 每次代码提交前，执行
+```bash
+pre-commit run --all-files

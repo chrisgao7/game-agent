@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 行为树(Behavior Tree) - 灵活的NPC行为决策逻辑
 
@@ -13,22 +14,24 @@ from __future__ import annotations
 
 import time
 from enum import Enum
-from typing import Any, Callable, Optional
-from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class BehaviorStatus(str, Enum):
-    SUCCESS = "success"
-    FAILURE = "failure"
-    RUNNING = "running"
+    SUCCESS = 'success'
+    FAILURE = 'failure'
+    RUNNING = 'running'
 
 
 class BehaviorNode:
     """行为树节点基类"""
 
-    def __init__(self, name: str = ""):
+    def __init__(self, name: str = ''):
         self.name = name
-        self.parent: Optional[BehaviorNode] = None
+        self.parent: BehaviorNode | None = None
         self.status: BehaviorStatus = BehaviorStatus.FAILURE
 
     def tick(self, context: dict[str, Any]) -> BehaviorStatus:
@@ -39,13 +42,13 @@ class BehaviorNode:
         self.status = BehaviorStatus.FAILURE
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name})"
+        return f'{self.__class__.__name__}({self.name})'
 
 
 class CompositeNode(BehaviorNode):
     """组合节点基类"""
 
-    def __init__(self, name: str = "", children: list[BehaviorNode] | None = None):
+    def __init__(self, name: str = '', children: list[BehaviorNode] | None = None):
         super().__init__(name)
         self.children: list[BehaviorNode] = children or []
         for child in self.children:
@@ -84,7 +87,7 @@ class SequenceNode(CompositeNode):
     逻辑: AND - 全部成功才成功, 任一失败即失败
     """
 
-    def __init__(self, name: str = "", children: list[BehaviorNode] | None = None):
+    def __init__(self, name: str = '', children: list[BehaviorNode] | None = None):
         super().__init__(name, children)
         self._current_index = 0
 
@@ -227,7 +230,7 @@ class CooldownNode(DecoratorNode):
 class BehaviorTree:
     """行为树管理器"""
 
-    def __init__(self, root: BehaviorNode, name: str = "default"):
+    def __init__(self, root: BehaviorNode, name: str = 'default'):
         self.root = root
         self.name = name
         self._tick_count = 0
@@ -246,9 +249,9 @@ class BehaviorTree:
     @property
     def stats(self) -> dict[str, Any]:
         return {
-            "name": self.name,
-            "ticks": self._tick_count,
-            "last_status": self._last_status.value,
+            'name': self.name,
+            'ticks': self._tick_count,
+            'last_status': self._last_status.value,
         }
 
     # ---- 便捷构建方法 ----

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 决策缓存 - 基于状态哈希缓存战术决策, 减少重复计算
 
@@ -9,23 +10,24 @@
 
 from __future__ import annotations
 
-import time
 import hashlib
 import json
+import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
 class CacheEntry:
     """缓存条目"""
+
     key: str
     value: Any
     created_at: float = field(default_factory=time.time)
     last_accessed: float = field(default_factory=time.time)
     access_count: int = 0
-    ttl: float = 5.0       # 生存时间(秒)
+    ttl: float = 5.0  # 生存时间(秒)
 
     @property
     def is_expired(self) -> bool:
@@ -46,7 +48,7 @@ class DecisionCache:
         self._hits = 0
         self._misses = 0
 
-    def get(self, state: dict[str, Any]) -> Optional[Any]:
+    def get(self, state: dict[str, Any]) -> Any | None:
         """查询缓存
 
         Args:
@@ -118,11 +120,11 @@ class DecisionCache:
     @property
     def stats(self) -> dict[str, Any]:
         return {
-            "size": self.size,
-            "max_size": self.max_size,
-            "hits": self._hits,
-            "misses": self._misses,
-            "hit_rate": f"{self.hit_rate:.2%}",
+            'size': self.size,
+            'max_size': self.max_size,
+            'hits': self._hits,
+            'misses': self._misses,
+            'hit_rate': f'{self.hit_rate:.2%}',
         }
 
     def _hash_state(self, state: dict[str, Any]) -> str:

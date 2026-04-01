@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 LLM客户端 - 统一的大语言模型调用接口
 
@@ -12,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
@@ -22,29 +23,30 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LLMConfig:
     """LLM配置"""
-    provider: str = "openai"                    # openai / private
-    model: str = "gpt-3.5-turbo"
-    api_key: str = ""
-    base_url: str = ""                          # API地址
+
+    provider: str = 'openai'  # openai / private
+    model: str = 'gpt-3.5-turbo'
+    api_key: str = ''
+    base_url: str = ''  # API地址
     max_tokens: int = 512
     temperature: float = 0.7
     timeout: int = 30
     extra_headers: dict[str, str] = field(default_factory=dict)
-    extra_cookies: str = ""
+    extra_cookies: str = ''
 
     @classmethod
     def from_dict(cls, config: dict[str, Any]) -> LLMConfig:
         """从字典创建配置"""
         return cls(
-            provider=config.get("provider", "openai"),
-            model=config.get("model", "gpt-3.5-turbo"),
-            api_key=config.get("api_key", ""),
-            base_url=config.get("base_url", ""),
-            max_tokens=config.get("max_tokens", 512),
-            temperature=config.get("temperature", 0.7),
-            timeout=config.get("timeout", 30),
-            extra_headers=config.get("extra_headers", {}),
-            extra_cookies=config.get("extra_cookies", ""),
+            provider=config.get('provider', 'openai'),
+            model=config.get('model', 'gpt-3.5-turbo'),
+            api_key=config.get('api_key', ''),
+            base_url=config.get('base_url', ''),
+            max_tokens=config.get('max_tokens', 512),
+            temperature=config.get('temperature', 0.7),
+            timeout=config.get('timeout', 30),
+            extra_headers=config.get('extra_headers', {}),
+            extra_cookies=config.get('extra_cookies', ''),
         )
 
 
@@ -56,7 +58,7 @@ class LLMClient:
     """
 
     # OpenAI官方API默认地址
-    OPENAI_BASE_URL = "https://api.openai.com/v1"
+    OPENAI_BASE_URL = 'https://api.openai.com/v1'
 
     def __init__(self, config: LLMConfig | dict[str, Any] | None = None):
         if config is None:
@@ -72,11 +74,11 @@ class LLMClient:
     def _setup_session(self):
         """配置HTTP会话"""
         headers = {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
         }
 
         if self.config.api_key:
-            headers["Authorization"] = f"Bearer {self.config.api_key}"
+            headers['Authorization'] = f'Bearer {self.config.api_key}'
 
         # 合并自定义headers
         headers.update(self.config.extra_headers)
@@ -84,20 +86,21 @@ class LLMClient:
         self._session.headers.update(headers)
 
         if self.config.extra_cookies:
-            self._session.headers["Cookie"] = self.config.extra_cookies
+            self._session.headers['Cookie'] = self.config.extra_cookies
 
     @property
     def _chat_url(self) -> str:
         """获取 chat completions 端点URL"""
-        base = self.config.base_url.rstrip("/") if self.config.base_url else self.OPENAI_BASE_URL
+        base = self.config.base_url.rstrip(
+            '/') if self.config.base_url else self.OPENAI_BASE_URL
         # 如果base_url已经包含/v1, 不重复添加
-        if base.endswith("/v1"):
-            return f"{base}/chat/completions"
-        elif "/v1/" in base:
+        if base.endswith('/v1'):
+            return f'{base}/chat/completions'
+        elif '/v1/' in base:
             # base_url可能已经是完整路径
-            return base if base.endswith("/chat/completions") else f"{base}/chat/completions"
+            return base if base.endswith('/chat/completions') else f'{base}/chat/completions'
         else:
-            return f"{base}/v1/chat/completions"
+            return f'{base}/v1/chat/completions'
 
     def chat(
         self,
@@ -119,10 +122,10 @@ class LLMClient:
         """
         messages = []
         if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+            messages.append({'role': 'system', 'content': system_prompt})
         if history:
             messages.extend(history)
-        messages.append({"role": "user", "content": user_message})
+        messages.append({'role': 'user', 'content': user_message})
 
         return self.chat_completions(messages, **kwargs)
 
@@ -141,11 +144,11 @@ class LLMClient:
             assistant回复文本, 失败返回None
         """
         payload = {
-            "model": kwargs.get("model", self.config.model),
-            "messages": messages,
-            "temperature": kwargs.get("temperature", self.config.temperature),
-            "max_tokens": kwargs.get("max_tokens", self.config.max_tokens),
-            "stream": False,
+            'model': kwargs.get('model', self.config.model),
+            'messages': messages,
+            'temperature': kwargs.get('temperature', self.config.temperature),
+            'max_tokens': kwargs.get('max_tokens', self.config.max_tokens),
+            'stream': False,
         }
 
         try:
@@ -157,23 +160,26 @@ class LLMClient:
             response.raise_for_status()
 
             data = response.json()
-            content = data["choices"][0]["message"]["content"]
+            content = data['choices'][0]['message']['content']
             return content.strip() if content else None
 
         except requests.exceptions.Timeout:
-            logger.warning("LLM request timed out (timeout=%ds)", self.config.timeout)
+            logger.warning('LLM request timed out (timeout=%ds)',
+                           self.config.timeout)
             return None
         except requests.exceptions.ConnectionError as e:
-            logger.warning("LLM connection error: %s", e)
+            logger.warning('LLM connection error: %s', e)
             return None
         except requests.exceptions.HTTPError as e:
-            logger.warning("LLM HTTP error: %s, response: %s", e, e.response.text[:200] if e.response else "")
+            logger.warning(
+                'LLM HTTP error: %s, response: %s', e, e.response.text[:200] if e.response else ''
+            )
             return None
         except (KeyError, IndexError) as e:
-            logger.warning("LLM response parse error: %s", e)
+            logger.warning('LLM response parse error: %s', e)
             return None
         except Exception as e:
-            logger.warning("LLM unexpected error: %s", e)
+            logger.warning('LLM unexpected error: %s', e)
             return None
 
     def chat_completions_raw(
@@ -183,11 +189,11 @@ class LLMClient:
     ) -> dict[str, Any] | None:
         """返回原始JSON响应(用于需要token用量等元数据的场景)"""
         payload = {
-            "model": kwargs.get("model", self.config.model),
-            "messages": messages,
-            "temperature": kwargs.get("temperature", self.config.temperature),
-            "max_tokens": kwargs.get("max_tokens", self.config.max_tokens),
-            "stream": False,
+            'model': kwargs.get('model', self.config.model),
+            'messages': messages,
+            'temperature': kwargs.get('temperature', self.config.temperature),
+            'max_tokens': kwargs.get('max_tokens', self.config.max_tokens),
+            'stream': False,
         }
 
         try:
@@ -199,13 +205,13 @@ class LLMClient:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            logger.warning("LLM raw request error: %s", e)
+            logger.warning('LLM raw request error: %s', e)
             return None
 
     def is_available(self) -> bool:
         """检测LLM服务是否可用"""
         try:
-            result = self.chat("ping", max_tokens=5, temperature=0)
+            result = self.chat('ping', max_tokens=5, temperature=0)
             return result is not None
         except Exception:
             return False
@@ -222,7 +228,7 @@ class LLMClient:
 
     def __repr__(self):
         return (
-            f"LLMClient(provider={self.config.provider}, "
-            f"model={self.config.model}, "
-            f"base_url={self._chat_url})"
+            f'LLMClient(provider={self.config.provider}, '
+            f'model={self.config.model}, '
+            f'base_url={self._chat_url})'
         )

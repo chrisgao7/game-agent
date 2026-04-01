@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 LOD(Level of Detail)管理器 - 根据性能预算动态调整Agent决策层级
 
@@ -9,26 +10,26 @@ LOD(Level of Detail)管理器 - 根据性能预算动态调整Agent决策层级
 
 from __future__ import annotations
 
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any
 
 
 class DecisionLevel(IntEnum):
-    REACTIVE = 0       # 反应层 - 始终执行
-    TACTICAL = 1       # 战术层 - 中等LOD
-    STRATEGIC = 2      # 战略层 - 高LOD
+    REACTIVE = 0  # 反应层 - 始终执行
+    TACTICAL = 1  # 战术层 - 中等LOD
+    STRATEGIC = 2  # 战略层 - 高LOD
 
 
 @dataclass
 class AgentLOD:
     """Agent的LOD配置"""
+
     agent_id: str
-    importance: float = 0.5         # [0, 1] Agent重要性
+    importance: float = 0.5  # [0, 1] Agent重要性
     distance_to_player: float = 0.0
     current_level: DecisionLevel = DecisionLevel.TACTICAL
-    update_interval: float = 0.5    # 秒
+    update_interval: float = 0.5  # 秒
 
 
 class LODManager:
@@ -40,7 +41,7 @@ class LODManager:
 
     def __init__(
         self,
-        performance_budget_ms: float = 16.67,    # 60fps
+        performance_budget_ms: float = 16.67,  # 60fps
         reactive_budget_ratio: float = 0.5,
         tactical_budget_ratio: float = 0.3,
         strategic_budget_ratio: float = 0.2,
@@ -89,7 +90,7 @@ class LODManager:
         avg_frame_time = self._avg_frame_time()
         budget_pressure = avg_frame_time / self.performance_budget_ms  # >1 表示超预算
 
-        for agent_id, lod in self._agents.items():
+        for _agent_id, lod in self._agents.items():
             lod.current_level = self._compute_agent_level(lod, budget_pressure)
             lod.update_interval = self._compute_update_interval(lod)
 
@@ -172,8 +173,8 @@ class LODManager:
         for lod in self._agents.values():
             level_counts[lod.current_level.name] += 1
         return {
-            "total_agents": len(self._agents),
-            "avg_frame_time_ms": round(self._avg_frame_time(), 2),
-            "budget_ms": self.performance_budget_ms,
-            "level_distribution": level_counts,
+            'total_agents': len(self._agents),
+            'avg_frame_time_ms': round(self._avg_frame_time(), 2),
+            'budget_ms': self.performance_budget_ms,
+            'level_distribution': level_counts,
         }

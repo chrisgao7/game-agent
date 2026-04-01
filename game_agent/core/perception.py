@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 感知模块 - 获取游戏环境、玩家行为和游戏状态信息
 
@@ -10,55 +11,59 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from game_agent.world.game_world import GameWorld
 
 
 class EventType(str, Enum):
-    PLAYER_ACTION = "player_action"
-    PLAYER_SPEAK = "player_speak"
-    PLAYER_MOVE = "player_move"
-    ENTITY_SPAWN = "entity_spawn"
-    ENTITY_DEATH = "entity_death"
-    COMBAT_START = "combat_start"
-    COMBAT_END = "combat_end"
-    ITEM_PICKUP = "item_pickup"
-    ENVIRONMENT_CHANGE = "environment_change"
-    QUEST_UPDATE = "quest_update"
-    CUSTOM = "custom"
+    PLAYER_ACTION = 'player_action'
+    PLAYER_SPEAK = 'player_speak'
+    PLAYER_MOVE = 'player_move'
+    ENTITY_SPAWN = 'entity_spawn'
+    ENTITY_DEATH = 'entity_death'
+    COMBAT_START = 'combat_start'
+    COMBAT_END = 'combat_end'
+    ITEM_PICKUP = 'item_pickup'
+    ENVIRONMENT_CHANGE = 'environment_change'
+    QUEST_UPDATE = 'quest_update'
+    CUSTOM = 'custom'
 
 
 @dataclass
 class GameEvent:
     """游戏事件"""
+
     event_type: EventType
-    source: str              # 事件来源ID
+    source: str  # 事件来源ID
     data: dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
-    priority: int = 0        # 优先级, 越高越重要
+    priority: int = 0  # 优先级, 越高越重要
 
 
 @dataclass
 class EntityInfo:
     """实体信息"""
+
     entity_id: str
-    entity_type: str         # player / npc / enemy / item / object
+    entity_type: str  # player / npc / enemy / item / object
     position: tuple[float, float, float] = (0.0, 0.0, 0.0)
     health: float = 1.0
-    state: str = "idle"
+    state: str = 'idle'
     properties: dict[str, Any] = field(default_factory=dict)
-    distance: float = 0.0    # 与当前Agent的距离
+    distance: float = 0.0  # 与当前Agent的距离
 
 
 @dataclass
 class PerceptionData:
     """感知结果数据"""
+
     nearby_entities: list[EntityInfo] = field(default_factory=list)
     visible_players: list[EntityInfo] = field(default_factory=list)
     threats: list[EntityInfo] = field(default_factory=list)
@@ -113,7 +118,7 @@ class PerceptionModule:
         nearby = self._scan_entities(agent_id, agent_position, game_world)
 
         # 2. 筛选可见玩家
-        players = [e for e in nearby if e.entity_type == "player"]
+        players = [e for e in nearby if e.entity_type == 'player']
 
         # 3. 识别威胁
         threats = self._identify_threats(nearby, agent_id, game_world)
@@ -160,20 +165,21 @@ class PerceptionModule:
         game_world: GameWorld,
     ) -> list[EntityInfo]:
         """扫描感知范围内的实体"""
-        entities = game_world.get_entities_in_radius(position, self.perception_radius)
+        entities = game_world.get_entities_in_radius(
+            position, self.perception_radius)
         result = []
         for entity_data in entities:
-            if entity_data.get("id") == agent_id:
+            if entity_data.get('id') == agent_id:
                 continue
-            entity_pos = entity_data.get("position", (0, 0, 0))
+            entity_pos = entity_data.get('position', (0, 0, 0))
             dist = self._distance(position, entity_pos)
             info = EntityInfo(
-                entity_id=entity_data.get("id", "unknown"),
-                entity_type=entity_data.get("type", "unknown"),
+                entity_id=entity_data.get('id', 'unknown'),
+                entity_type=entity_data.get('type', 'unknown'),
                 position=entity_pos,
-                health=entity_data.get("health", 1.0),
-                state=entity_data.get("state", "idle"),
-                properties=entity_data.get("properties", {}),
+                health=entity_data.get('health', 1.0),
+                state=entity_data.get('state', 'idle'),
+                properties=entity_data.get('properties', {}),
                 distance=dist,
             )
             result.append(info)
@@ -191,8 +197,8 @@ class PerceptionModule:
         threats = []
         for entity in entities:
             is_threat = (
-                entity.entity_type == "enemy"
-                or entity.state in ("attacking", "hostile", "aggressive")
+                entity.entity_type == 'enemy'
+                or entity.state in ('attacking', 'hostile', 'aggressive')
                 or game_world.is_hostile(entity.entity_id, agent_id)
             )
             if is_threat:
@@ -221,25 +227,23 @@ class PerceptionModule:
     ) -> dict[str, Any]:
         """感知环境信息"""
         return {
-            "time_of_day": game_world.get_time_of_day(),
-            "weather": game_world.get_weather(),
-            "location": game_world.get_location_name(position),
-            "terrain": game_world.get_terrain(position),
-            "light_level": game_world.get_light_level(position),
+            'time_of_day': game_world.get_time_of_day(),
+            'weather': game_world.get_weather(),
+            'location': game_world.get_location_name(position),
+            'terrain': game_world.get_terrain(position),
+            'light_level': game_world.get_light_level(position),
         }
 
     def _dispatch_event(self, event: GameEvent):
         """分发事件给监听器"""
         listeners = self._event_listeners.get(event.event_type, [])
         for callback in listeners:
-            try:
+            with contextlib.suppress(Exception):
                 callback(event)
-            except Exception:
-                pass
 
     @staticmethod
     def _distance(
         a: tuple[float, float, float],
         b: tuple[float, float, float],
     ) -> float:
-        return ((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2) ** 0.5
+        return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5

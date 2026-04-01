@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 异步处理引擎 - 将耗时AI计算移至后台线程
 
@@ -9,16 +10,20 @@
 
 from __future__ import annotations
 
-import asyncio
+import contextlib
 import time
-from concurrent.futures import ThreadPoolExecutor, Future
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @dataclass
 class AsyncTask:
     """异步任务"""
+
     task_id: str
     func: Callable
     args: tuple = ()
@@ -26,7 +31,7 @@ class AsyncTask:
     priority: int = 0
     submitted_at: float = field(default_factory=time.time)
     result: Any = None
-    error: Optional[Exception] = None
+    error: Exception | None = None
     completed: bool = False
 
 
@@ -64,7 +69,7 @@ class AsyncEngine:
         """
         if task_id is None:
             self._task_counter += 1
-            task_id = f"task_{self._task_counter}"
+            task_id = f'task_{self._task_counter}'
 
         future = self._executor.submit(func, *args, **kwargs)
         self._pending[task_id] = future
@@ -146,10 +151,8 @@ class AsyncEngine:
         self._executor.shutdown(wait=wait)
 
     def __del__(self):
-        try:
+        with contextlib.suppress(Exception):
             self._executor.shutdown(wait=False)
-        except Exception:
-            pass
 
 
 class AsyncBatchProcessor:

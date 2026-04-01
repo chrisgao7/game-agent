@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 多Agent协作协调器 - 集中式协调管理
 
@@ -13,27 +14,28 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 
 class TaskAssignmentStrategy(str, Enum):
-    PRIORITY = "priority"        # 按优先级分配给最合适的Agent
-    ROUND_ROBIN = "round_robin"  # 轮询分配
-    CAPABILITY = "capability"    # 按能力匹配
+    PRIORITY = 'priority'  # 按优先级分配给最合适的Agent
+    ROUND_ROBIN = 'round_robin'  # 轮询分配
+    CAPABILITY = 'capability'  # 按能力匹配
 
 
 @dataclass
 class CoordinationTask:
     """协调任务"""
+
     task_id: str
-    task_type: str                   # patrol / attack / defend / escort / gather
-    target: Optional[str] = None
-    position: Optional[tuple[float, float, float]] = None
+    task_type: str  # patrol / attack / defend / escort / gather
+    target: str | None = None
+    position: tuple[float, float, float] | None = None
     priority: int = 0
     required_agents: int = 1
     required_capabilities: list[str] = field(default_factory=list)
     assigned_agents: list[str] = field(default_factory=list)
-    status: str = "pending"          # pending / in_progress / completed / failed
+    status: str = 'pending'  # pending / in_progress / completed / failed
     created_at: float = field(default_factory=time.time)
     data: dict[str, Any] = field(default_factory=dict)
 
@@ -41,21 +43,23 @@ class CoordinationTask:
 @dataclass
 class AgentInfo:
     """协调器中的Agent信息"""
+
     agent_id: str
     agent_type: str
     capabilities: list[str] = field(default_factory=list)
     position: tuple[float, float, float] = (0, 0, 0)
-    status: str = "idle"             # idle / busy / combat / dead
-    current_task_id: Optional[str] = None
+    status: str = 'idle'  # idle / busy / combat / dead
+    current_task_id: str | None = None
 
 
 @dataclass
 class AgentMessage:
     """Agent间消息"""
+
     sender: str
-    receiver: str           # "*" 表示广播
+    receiver: str  # "*" 表示广播
     content: dict[str, Any] = field(default_factory=dict)
-    msg_type: str = "info"  # info / request / response / alert
+    msg_type: str = 'info'  # info / request / response / alert
     timestamp: float = field(default_factory=time.time)
 
 
@@ -144,7 +148,7 @@ class AgentCoordinator:
     ) -> str:
         """创建协调任务"""
         self._task_counter += 1
-        task_id = f"ctask_{self._task_counter}"
+        task_id = f'ctask_{self._task_counter}'
         task = CoordinationTask(
             task_id=task_id,
             task_type=task_type,
@@ -160,19 +164,19 @@ class AgentCoordinator:
 
     def assign_tasks(self) -> dict[str, list[str]]:
         """执行任务分配, 返回 {task_id: [agent_ids]}"""
-        pending = [t for t in self._tasks.values() if t.status == "pending"]
+        pending = [t for t in self._tasks.values() if t.status == 'pending']
         pending.sort(key=lambda t: t.priority, reverse=True)
 
         assignments = {}
         for task in pending:
             agents = self._find_agents_for_task(task)
             if len(agents) >= task.required_agents:
-                selected = agents[:task.required_agents]
+                selected = agents[: task.required_agents]
                 task.assigned_agents = [a.agent_id for a in selected]
-                task.status = "in_progress"
+                task.status = 'in_progress'
                 for agent in selected:
                     agent.current_task_id = task.task_id
-                    agent.status = "busy"
+                    agent.status = 'busy'
                 assignments[task.task_id] = task.assigned_agents
         return assignments
 
@@ -181,10 +185,10 @@ class AgentCoordinator:
         task = self._tasks.get(task_id)
         if not task:
             return
-        task.status = "completed" if success else "failed"
+        task.status = 'completed' if success else 'failed'
         for agent_id in task.assigned_agents:
             if agent_id in self._agents:
-                self._agents[agent_id].status = "idle"
+                self._agents[agent_id].status = 'idle'
                 self._agents[agent_id].current_task_id = None
 
     # ---- 通信 ----
@@ -194,18 +198,20 @@ class AgentCoordinator:
         sender: str,
         receiver: str,
         content: dict[str, Any],
-        msg_type: str = "info",
+        msg_type: str = 'info',
     ):
         """发送消息"""
-        msg = AgentMessage(sender=sender, receiver=receiver, content=content, msg_type=msg_type)
+        msg = AgentMessage(sender=sender, receiver=receiver,
+                           content=content, msg_type=msg_type)
 
-        if receiver == "*":
+        if receiver == '*':
             # 广播(范围内)
             sender_info = self._agents.get(sender)
             for aid, queue in self._message_queues.items():
                 if aid != sender:
                     if sender_info and aid in self._agents:
-                        dist = self._distance(sender_info.position, self._agents[aid].position)
+                        dist = self._distance(
+                            sender_info.position, self._agents[aid].position)
                         if dist <= self.communication_range:
                             queue.append(msg)
                     else:
@@ -225,17 +231,14 @@ class AgentCoordinator:
     # ---- 查询 ----
 
     def get_idle_agents(self) -> list[AgentInfo]:
-        return [a for a in self._agents.values() if a.status == "idle"]
+        return [a for a in self._agents.values() if a.status == 'idle']
 
     def get_agents_near(
         self,
         position: tuple[float, float, float],
         radius: float,
     ) -> list[AgentInfo]:
-        return [
-            a for a in self._agents.values()
-            if self._distance(a.position, position) <= radius
-        ]
+        return [a for a in self._agents.values() if self._distance(a.position, position) <= radius]
 
     def get_task(self, task_id: str) -> CoordinationTask | None:
         return self._tasks.get(task_id)
@@ -249,10 +252,10 @@ class AgentCoordinator:
         for t in self._tasks.values():
             task_counts[t.status] = task_counts.get(t.status, 0) + 1
         return {
-            "total_agents": len(self._agents),
-            "agent_status": status_counts,
-            "total_tasks": len(self._tasks),
-            "task_status": task_counts,
+            'total_agents': len(self._agents),
+            'agent_status': status_counts,
+            'total_tasks': len(self._tasks),
+            'task_status': task_counts,
         }
 
     # ---- 内部 ----
@@ -261,7 +264,7 @@ class AgentCoordinator:
         """查找适合执行任务的Agent"""
         candidates = []
         for agent in self._agents.values():
-            if agent.status != "idle":
+            if agent.status != 'idle':
                 continue
             # 能力匹配
             if task.required_capabilities:
@@ -285,4 +288,4 @@ class AgentCoordinator:
 
     @staticmethod
     def _distance(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
-        return ((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2) ** 0.5
+        return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5
